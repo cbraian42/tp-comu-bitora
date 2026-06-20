@@ -21,8 +21,18 @@ app.use(
       if (!origin || allowedOrigins === '*') {
         return callback(null, true)
       }
+      
       const cleanOrigin = origin.replace(/\/$/, '')
+      
+      // 1. Permitir coincidencia exacta con lo configurado en FRONTEND_URL
       if (allowedOrigins.includes(cleanOrigin)) {
+        return callback(null, true)
+      }
+      
+      // 2. Permitir de forma dinamica cualquier despliegue (produccion o preview/rama) en Vercel de este proyecto
+      const isVercelDeploy = cleanOrigin.startsWith('https://tp-comu-bitora') && cleanOrigin.endsWith('.vercel.app')
+      
+      if (isVercelDeploy) {
         callback(null, true)
       } else {
         callback(null, false)
