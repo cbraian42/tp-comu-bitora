@@ -11,13 +11,25 @@ const PORT = process.env.PORT || 4000
 // CORS: en produccion limitamos al dominio del frontend (Vercel).
 // Configurable via la variable de entorno FRONTEND_URL.
 const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/$/, ''))
   : '*'
 
 app.use(
   cors({
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    origin: (origin, callback) => {
+      // Permitir solicitudes sin origin (como curl o Postman)
+      if (!origin || allowedOrigins === '*') {
+        return callback(null, true)
+      }
+      const cleanOrigin = origin.replace(/\/$/, '')
+      if (allowedOrigins.includes(cleanOrigin)) {
+        callback(null, true)
+      } else {
+        callback(null, false)
+      }
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 )
 
