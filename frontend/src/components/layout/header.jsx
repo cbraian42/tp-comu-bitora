@@ -1,8 +1,10 @@
-import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
-import { Menu, X, Binary } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Menu, X, Binary, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
+
+import { Link, useLocation } from 'react-router-dom'
 
 const navItems = [
   { href: '/', label: 'Inicio' },
@@ -14,9 +16,54 @@ const navItems = [
 export function Header() {
   const { pathname } = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [status, setStatus] = useState('online')
+
+  useEffect(() => {
+    if (sessionStorage.getItem('bitora_backend_online') === 'true') {
+      setStatus('online')
+      return
+    }
+
+    setStatus('checking')
+
+    const wakeUpTimer = setTimeout(() => {
+      setStatus('waking-up')
+    }, 1800)
+
+    api.health()
+      .then((data) => {
+        clearTimeout(wakeUpTimer)
+        if (data?.status === 'ok') {
+          setStatus('online')
+          sessionStorage.setItem('bitora_backend_online', 'true')
+        } else {
+          setStatus('offline')
+        }
+      })
+      .catch((err) => {
+        clearTimeout(wakeUpTimer)
+        console.error('Error al conectar con el backend:', err)
+        setStatus('offline')
+      })
+
+    return () => clearTimeout(wakeUpTimer)
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Banners de estado de la API */}
+      {status === 'waking-up' && (
+        <div className="bg-warning/10 border-b border-warning/30 text-warning text-xs font-medium py-2 px-4 text-center flex items-center justify-center gap-2 animate-pulse">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span>El servidor gratuito de Render se está despertando. Esto puede tardar hasta 50 segundos...</span>
+        </div>
+      )}
+      {status === 'offline' && (
+        <div className="bg-error/10 border-b border-error/30 text-error text-xs font-medium py-2 px-4 text-center flex items-center justify-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5" />
+          <span>No se pudo conectar con el servidor. Las funciones de compresión y análisis no estarán disponibles.</span>
+        </div>
+      )}
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
